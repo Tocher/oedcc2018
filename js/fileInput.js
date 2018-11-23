@@ -15,14 +15,14 @@ function read(i) {
     }
 
     fr.onloadend = function(e) {
-        if (e.target.readyState == FileReader.DONE) {
-            var tmp = e.target.result;
+        if (e.target.readyState === FileReader.DONE) {
+            let tmp = e.target.result;
             resultInt[i] = (new Int32Array(tmp));
             resultFloat[i] = (new Float32Array(tmp));
         }
         flag++;
         generateWorkObjects();
-    }
+    };
     fr.readAsArrayBuffer(file);
 }
 
@@ -32,7 +32,10 @@ function read(i) {
 // вычисление спектра
 function generateSpectre(data) {
     var fft = new FFT(data.selectionSize, data.frequencyResolution);
-    fft.forward(data.data.slice(0, data.selectionSize));
+
+    let signal = data.data.slice(0, data.selectionSize);
+
+    fft.forward(signal);
     var spectrum = fft.spectrum;
     var res = [];
     for (var i = 0; i < spectrum.length; i++) {
@@ -59,34 +62,39 @@ function generateSpectre(data) {
 
     calculateParams(buffer, '#filteredParams', buffer.length);
 
-    getHistogram(spectrum);
+    getHistogram(data.data, data);
 }
 
 // вычисление параметров сигнала
 function calculateParams(data, selector, selectionSize) {
-    var min = max = data[0];
-    for (var i = 0; i < selectionSize && i < data.length; i++) {
-        if (min > data[i]) {
-            min = data[i];
-        }
-        if (max < data[i]) {
-            max = data[i];
-        }
-    }
-    var razmah = max - min;
-    var constant = 0.0;
-    for (var i = 0; i < selectionSize && i < data.length; i++) {
-        constant += data[i];
-    }
-    constant /= selectionSize;
+    // Максимальное значение сигнала
+    let min = max = data[0];
 
-    var skz = 0.0;
-    for (var i = 0; i < selectionSize && i < data.length; i++) {
-        skz += data[i] * data[i];
+    // Постоянная составляющая
+    let constant = 0.0;
+
+    // Среднее квадратическое значение (СКЗ)
+    let skz = 0.0;
+
+    for (let i = 0; i < selectionSize && i < data.length; i++) {
+        let cur = data[i];
+
+        if (min > cur) {
+            min = cur;
+        }
+        if (max < cur) {
+            max = cur;
+        }
+
+        constant += cur;
+
+        skz += cur * cur;
     }
+    let razmah = max - min;
+    constant /= selectionSize;
     skz = Math.sqrt(skz / selectionSize);
 
-    var pik = Math.max(Math.abs(min), Math.abs(max)) / skz;
+    let pik = Math.max(Math.abs(min), Math.abs(max)) / skz;
 
     $(selector + ' .max').text(max);
     $(selector + ' .min').text(min);
@@ -155,7 +163,33 @@ function getHighchart(selector, title, series, data) {
     });
 }
 
-function getHistogram(data) {
+function getSpectrum(signal, cutOffFrequency, func){
+    var res = [],
+        j;
+
+    for (j = 0; j < cutOffFrequency; j++) {
+        res[j] = 2 * signal.reduce(function(sum, point, i) {
+            return sum + point * func(2 * Math.PI * i * j / signal.length);
+        }) / signal.length;
+    }
+
+    return res;
+}
+
+function getAmplSpectrum(frame, cutOffFrequency){
+    var res = [],
+        j,
+        cosSpectrum = getSpectrum(frame, cutOffFrequency, Math.cos),
+        sinSpectrum = getSpectrum(frame, cutOffFrequency, Math.sin);
+
+    for (j = 0; j <= cutOffFrequency - 1; j++) {
+        res[j] = Math.sqrt(Math.pow(sinSpectrum[j], 2) + Math.pow(cosSpectrum[j], 2));
+    }
+
+    return res;
+}
+
+function getHistogram(data, opt) {
     var min = max = data[0];
     for (var i = 0; i < data.length; i++) {
         if (min > data[i]) {
@@ -168,8 +202,11 @@ function getHistogram(data) {
 
     var cat = [],
         result = [];
-    for (var tmp = min; tmp < max + (max - min) / 31; tmp += (max - min) / 30) {
-        cat.push(tmp);
+
+    let step = 30;
+
+    for (var tmp = min; tmp < max + (max - min) / (step+1); tmp += (max - min) / step) {
+        cat.push(tmp.toFixed(4));
         result.push(0);
     }
 
@@ -228,7 +265,7 @@ function generateWorkObjects() {
     }
     var result = [];
     var detailChart;
-    for (var i = 0; i < resultInt.length; i++) {
+    for (let i = 0; i < resultInt.length; i++) {
         result[i] = {
             signature: "TMB1",
             channelCount: resultInt[i][1],
@@ -245,16 +282,16 @@ function generateWorkObjects() {
             minValue: resultFloat[i][12],
             data: resultFloat[i].slice(13),
             dataXY: []
-        }
-        for (var j = 0; j < result[i].data.length; j++) {
+        };
+
+        for (let j = 0; j < result[i].data.length; j++) {
             result[i].dataXY[j] = [result[i].blockTime * j, result[i].data[j]];
         }
     }
-    console.log(result);
 
     getHighchart('#dropzone', 'График временных реализаций', 'Время : значение', result[0].dataXY);
     calculateParams(result[0].data, '#signalParams', result[0].selectionSize);
-    generateSpectre(result[0]);
+    generateSpectre(result[0], result[4]);
 }
 
 // обработчик выбора файлов

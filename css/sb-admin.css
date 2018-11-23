@@ -8,7 +8,6 @@
 
 body {
     margin-top: 100px;
-    background-color: #222;
 }
 
 @media(min-width:768px) {
@@ -25,7 +24,8 @@ body {
     width: 100%;
     padding: 0;
     background-color: #fff;
-}
+    margin-top: -50px;
+    }
 
 .huge {
     font-size: 50px;
@@ -122,7 +122,7 @@ ul.alert-dropdown {
         border: none;
         border-radius: 0;
         overflow-y: auto;
-        background-color: #222;
+        border-right: 1px solid #eee;
         bottom: 0;
         overflow-x: hidden;
         padding-bottom: 40px;
@@ -135,7 +135,7 @@ ul.alert-dropdown {
     .side-nav li a:hover,
     .side-nav li a:focus {
         outline: none;
-        background-color: #000 !important;
+        background-color: #eee !important;
     }
 }
 
