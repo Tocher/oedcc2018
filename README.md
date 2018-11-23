@@ -1,8 +1,8 @@
 # oedcc2018
 
 ## Запуск
-git clone git@github.com:Tocher/oedcc2018.git
-cd oedcc2018
+`git clone git@github.com:Tocher/oedcc2018.git`
+`cd oedcc2018`
 
 Запустить сервер или открыть index.html
 
